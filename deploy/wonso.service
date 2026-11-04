@@ -1,0 +1,20 @@
+# 라즈베리파이 부팅 시 원소카드 서버를 자동으로 켜고, 죽으면 다시 살리는 설정
+#   설치:  sudo cp deploy/wonso.service /etc/systemd/system/ && sudo systemctl daemon-reload
+#          sudo systemctl enable --now wonso
+#   상태:  systemctl status wonso      로그: journalctl -u wonso -f
+[Unit]
+Description=원소카드 게임 서버
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/science
+Environment=PORT=8000
+ExecStart=/usr/bin/node server/server.js
+Restart=always
+RestartSec=2
+LimitNOFILE=8192
+
+[Install]
+WantedBy=multi-user.target

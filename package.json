@@ -1,0 +1,28 @@
+{
+  "name": "wonso-card",
+  "version": "1.0.0",
+  "description": "원소카드 서버",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "node --test tests/",
+    "start": "node server/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yeoeunhye/science-game.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yeoeunhye/science-game/issues"
+  },
+  "homepage": "https://github.com/yeoeunhye/science-game#readme",
+  "private": "true",
+  "dependencies": {
+    "ws": "^8.22.1"
+  }
+}
