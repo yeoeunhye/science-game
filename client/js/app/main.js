@@ -109,6 +109,7 @@
       case 'tut-close': window.Tutorial.close(); break;
       case 'table': C.openTable(); break;
       case 'table-close': C.closeTable(); break;
+      case 'sp-close': C.closeSpecials(); break;
       case 'theme': window.Theme.toggle(); break;
       case 'profile': openProfile(); break;
       case 'profile-close': closeProfile(); break;

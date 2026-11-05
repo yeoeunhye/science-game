@@ -177,6 +177,7 @@
         break;
       case 'room': onRoom(m); break;
       case 'update': queue.push(m); pump(); break;
+      case 'octlock': window.Board.setOctetLock(m.ms); break;
       case 'error':
         if (m.soft) { busy = false; C.toast(m.msg); }
         else if (ui === 'menu' && $('fr-err')) $('fr-err').textContent = m.msg;
@@ -245,6 +246,7 @@
   const absOf = (r) => (r + me) % n;
 
   function toBoard(v) {
+    if (v.octLockMs > 0) window.Board.setOctetLock(v.octLockMs);
     const ps = [];
     for (let k = 0; k < n; k++) {
       const p = v.players[(me + k) % n];
@@ -316,7 +318,7 @@
         case 'play': {
           flush();
           if (e.card.kind === 'el') seen.set(e.card.el.num, e.card.el);
-          if (!fast) await B.flyPlay(e.card, e.pid === me ? lastRect : B.seatRect(rel(e.pid)), e.pid === me ? e.card.uid : null);
+          if (!fast) await B.flyPlay(e.card, e.pid === me ? lastRect : B.seatRect(rel(e.pid)), e.pid === me ? e.card.uid : null, nm(e.pid));
           renderView(v);
           const name = e.card.kind === 'el' ? e.card.el.symbol + '(' + e.card.el.name + ')' : C.SPECIALS[e.card.sp].name;
           note = e.card.kind === 'el'
@@ -336,9 +338,9 @@
           renderView(v);
           break;
         case 'reshuffle': flush(); B.notify('드로우 더미가 떨어져서 버린 카드를 섞었어요'); break;
-        case 'octetOpen': flush(); B.notify(e.pid === me ? '손패가 1장! <b>옥텟!</b> 버튼을 눌러요' : nm(e.pid) + ' 손패 1장! 옥텟 버튼을 누를 수 있어요', e.pid === me ? 'accent' : ''); break;
-        case 'octet': flush(); B.notify(nm(e.pid) + ' <b>옥텟!</b> 을 외쳤어요', 'good'); break;
-        case 'catch': flush(); B.notify(nm(e.by) + '이 ' + nm(e.target) + '의 옥텟을 외쳤습니다! ' + nm(e.target) + ' 카드 <b>' + e.n + '장</b> 패널티 적용', 'warn'); break;
+        case 'octetOpen': Fx.octetEvent('octetOpen', e.pid === me ? '나' : nm(e.pid)); flush(); B.notify(e.pid === me ? '손패가 1장! <b>옥텟!</b> 버튼을 눌러요' : nm(e.pid) + ' 손패 1장! 옥텟 버튼을 누를 수 있어요', e.pid === me ? 'accent' : ''); break;
+        case 'octet': Fx.octetEvent('octet', nm(e.pid)); flush(); B.notify(nm(e.pid) + ' <b>옥텟!</b> 을 외쳤어요', 'good'); break;
+        case 'catch': Fx.octetEvent('catch', nm(e.by), nm(e.target) + ' 카드 ' + e.n + '장!'); flush(); B.notify(nm(e.by) + '이 ' + nm(e.target) + '의 옥텟을 외쳤습니다! ' + nm(e.target) + ' 카드 <b>' + e.n + '장</b> 패널티 적용', 'warn'); break;
         case 'turn': if (e.pid === me) myTurnNow = true; break;
         case 'win': flush(); renderView(v); showEnd(v, e.pid); return;
         default: break;

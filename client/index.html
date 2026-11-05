@@ -40,7 +40,7 @@
     </div>
 
     <nav class="menu">
-      <button class="mbtn primary" data-action="solo"><svg class="mi" viewBox="0 0 24 24"><path d="M7 8h10a5 5 0 0 1 4.9 6l-.6 3a2.6 2.6 0 0 1-4.6 1.1L15.5 16h-7l-1.2 2.100A2.600 2.600 0 0 1 2.700 17l-.6-3A5 5 0 0 1 7 8z"/><path d="M8 10.500v3M6.500 12h3"/><circle cx="15.500" cy="11.500" r=".9"/><circle cx="17.800" cy="13" r=".9"/></svg><span><b>혼자하기</b><small>AI와 대결 · 2~4명</small></span><i>→</i></button>
+      <button class="mbtn primary" data-action="solo"><svg class="mi" viewBox="0 0 24 24"><path d="M7.500 6h9a5.500 5.500 0 0 1 5.400 4.600l.8 5.200a2.800 2.800 0 0 1-4.900 2.200L15.700 16H8.300l-2.200 2a2.800 2.800 0 0 1-4.900-2.200l.8-5.200A5.500 5.500 0 0 1 7.500 6z"/><path d="M7.500 9.500v4M5.500 11.500h4"/><circle cx="16" cy="10.300" r="1" fill="#1a2142" stroke="none"/><circle cx="18.300" cy="12.700" r="1" fill="#1a2142" stroke="none"/></svg><span><b>혼자하기</b><small>AI와 대결 · 2~4명</small></span><i>→</i></button>
       <button class="mbtn" data-action="friends"><svg class="mi" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.200"/><path d="M3 20c0-3.500 2.700-6 6-6s6 2.500 6 6"/><circle cx="17" cy="9" r="2.500"/><path d="M16.500 14c3 0 5 2 5 5"/></svg><span><b>친구와 하기</b><small>초대 코드로 함께 · 최대 4명</small></span><i>→</i></button>
       <button class="mbtn" data-action="tutorial"><svg class="mi" viewBox="0 0 24 24"><path d="M12 6c-2-1.500-5-2-9-2v14c4 0 7 .5 9 2 2-1.500 5-2 9-2V4c-4 0-7 .5-9 2z"/><path d="M12 6v14"/></svg><span><b>게임방법보기</b><small>규칙과 특수카드 설명</small></span><i>→</i></button>
     </nav>
@@ -118,6 +118,17 @@
         <button class="x" data-action="table-close" aria-label="닫기">✕</button>
       </header>
       <div id="tablemodal-body" class="tut-body"></div>
+    </div>
+  </div>
+
+  <!-- 특수카드 팝업 -->
+  <div id="spmodal" class="overlay hidden" role="dialog" aria-modal="true" aria-label="특수카드">
+    <div class="panel">
+      <header class="tut-head">
+        <h2>특수카드</h2>
+        <button class="x" data-action="sp-close" aria-label="닫기">✕</button>
+      </header>
+      <div id="spmodal-body" class="tut-body"></div>
     </div>
   </div>
 

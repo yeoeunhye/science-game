@@ -265,3 +265,16 @@ test('옥텟 창: 시간 제한 없이 유지, 남이 대신 외치면 본인 +2
   R.draw(S2, 0);                                     // 본인이 뽑으면 닫힘
   assert.equal(S2.octet, null);
 });
+
+test('옥텟 버튼 연타 방지: 5초 안에 3번이면 10초 잠금, 잠금이 끝나면 다시 사용', () => {
+  const g = { t: [], until: 0 };
+  assert.equal(R.octetGuard(g, 1000).blocked, false);
+  assert.equal(R.octetGuard(g, 1500).blocked, false);
+  const third = R.octetGuard(g, 2000);
+  assert.equal(third.blocked, true);
+  assert.equal(third.ms, 10000);
+  assert.equal(R.octetGuard(g, 7000).blocked, true);       // 잠금 중
+  assert.equal(R.octetGuard(g, 12001).blocked, false);     // 10초 뒤 해제
+  const h = { t: [], until: 0 };                           // 천천히 누르면 괜찮다
+  [0, 3000, 6000, 9000].forEach((t) => assert.equal(R.octetGuard(h, t).blocked, false));
+});

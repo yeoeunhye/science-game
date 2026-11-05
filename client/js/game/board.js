@@ -26,6 +26,7 @@
         '<button class="chip-btn sm" data-g="exit">← 나가기</button>' +
         '<div class="g-timer" id="g-timer"><div class="timer"><div class="bar" id="g-bar"></div></div><span id="g-sec">30</span></div>' +
         '<button class="chip-btn sm" data-g="table">주기율표</button>' +
+        '<button class="chip-btn sm" data-g="specials">특수카드</button>' +
         '<div class="g-turns" id="g-turns" aria-label="턴 현황"></div>' +
       '</header>' +
       '<div class="feed" id="g-feed"></div>' +
@@ -51,6 +52,15 @@
       .forEach((k) => { els[k] = root.querySelector('#g-' + k); });
 
     buildBg(root.querySelector('#g-bg'));
+    // 마우스: 손패 위에서 움직이면 가리킨 카드가 앞으로 나오고 양옆이 벌어진다
+    els.hand.addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'mouse' || e.buttons || scrub.on) return;
+      const cs = els.hand.children; if (!cs.length) return;
+      const r0 = cs[0].getBoundingClientRect(), rl = cs[cs.length - 1].getBoundingClientRect();
+      if (e.clientY < r0.top - 40 || e.clientX < r0.left - 12 || e.clientX > rl.right + 12) { if (peekIdx >= 0) clearPeek(); return; }
+      applyPeek(pickIdx(e.clientX));
+    });
+    els.hand.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && !e.buttons) clearPeek(); });
     paintSort();
     root.addEventListener('click', (ev) => {
       const b = ev.target.closest('[data-g]');
@@ -58,9 +68,10 @@
       switch (b.dataset.g) {
         case 'exit': H.onExit && H.onExit(); break;
         case 'table': C.openTable(); break;
+        case 'specials': C.openSpecials(); break;
         case 'draw': H.onDraw && H.onDraw(); break;
         case 'pass': H.onPass && H.onPass(); break;
-        case 'octet': H.onOctetBtn && H.onOctetBtn(els.octet.dataset.id === '' ? null : Number(els.octet.dataset.id)); break;
+        case 'octet': if (lockUntil > Date.now()) { C.toast('옥텟 버튼이 잠겨 있어요 (' + Math.ceil((lockUntil - Date.now()) / 1000) + '초)'); break; } H.onOctetBtn && H.onOctetBtn(els.octet.dataset.id === '' ? null : Number(els.octet.dataset.id)); break;
         case 'sort': cycleSort(); break;
         case 'catch': H.onCatch && H.onCatch(Number(b.dataset.id)); break;
       }
@@ -105,12 +116,15 @@
     renderHand(S);
     renderMe();
     const mine = S.turn === 0 && !S.over;
-    if (mine && !root.classList.contains('my-turn') && window.Fx) { Fx.snd('turn'); Fx.vib(40); }
+    if (mine && !root.classList.contains('my-turn')) {
+      if (window.Fx) { Fx.snd('turn'); Fx.vib(40); }
+      const tb = h('div', 'turn-banner', '내 차례!'); root.appendChild(tb); setTimeout(() => tb.remove(), 1100);
+    }
     root.classList.toggle('my-turn', mine);
     const ex = S.over ? null : S.players.find((p) => p.exposed);
     els.octet.classList.toggle('on', !!ex);
     els.octet.dataset.id = ex ? ex.id : '';
-    els['octet-sec'].textContent = ex && ex.id !== 0 ? ex.name + '님' : '';
+    if (lockUntil <= Date.now()) els['octet-sec'].textContent = ex && ex.id !== 0 ? ex.name + '님' : '';
     renderTurns();
     fit();
   }
@@ -237,25 +251,33 @@
   // 꾹 눌러 훑어보기(터치용): 카드를 잠깐 누르고 있으면 손가락이 커서가 되어, 옆으로 밀면 지나가는 카드가 앞으로 나와 보인다.
   // 손을 떼면 마지막으로 본 카드가 앞에 남아 있어서, 그 카드를 눌러 내거나 끌어서 낼 수 있다.
   const scrub = { on: false };
-  function clearPeek() { els.hand.querySelectorAll('.peek').forEach((n) => n.classList.remove('peek')); }
+  let peekIdx = -1;
+  function clearPeek() { peekIdx = -1; [...els.hand.children].forEach((n) => { n.classList.remove('peek'); n.style.removeProperty('--sx'); }); }
+  // x 좌표로 어느 카드를 가리키는지 계산(카드가 움직여도 흔들리지 않도록 원래 자리 기준)
+  function pickIdx(x) {
+    const cs = [...els.hand.children]; if (!cs.length) return -1; if (cs.length < 2) return 0;
+    const left0 = cs[0].offsetLeft, step = cs[1].offsetLeft - cs[0].offsetLeft;
+    const rel = x - els.hand.getBoundingClientRect().left;
+    if (rel >= cs[cs.length - 1].offsetLeft) return cs.length - 1;
+    return Math.min(cs.length - 1, Math.max(0, Math.floor((rel - left0) / (step || 1))));
+  }
+  // 가리킨 카드는 앞으로 나오고, 양옆 카드는 벌어져서 겹치지 않고 온전히 보인다
+  function applyPeek(i) {
+    const cs = [...els.hand.children]; if (i < 0 || i >= cs.length || i === peekIdx) return;
+    peekIdx = i;
+    const cw = cs[0].offsetWidth, step = cs.length > 1 ? cs[1].offsetLeft - cs[0].offsetLeft : cw;
+    const gap = step < cw * 0.75 ? (cw - step) + cw * 0.14 : 0;
+    cs.forEach((n, j) => {
+      n.classList.toggle('peek', j === i);
+      const d = Math.abs(j - i), f = Math.max(0, 1 - Math.max(0, d - 3) / 7);
+      n.style.setProperty('--sx', (j === i || !gap ? 0 : (j < i ? -1 : 1) * gap * f) + 'px');
+    });
+  }
   function startScrub(ev) {
     if (ev.pointerType === 'mouse') return;
     const sx = ev.clientX, sy = ev.clientY;
-    let timer = null, last = null;
-    const cards = () => [...els.hand.children];
-    const pick = (x) => {
-      const cs = cards(); if (cs.length < 2) return cs[0];
-      const left0 = cs[0].offsetLeft, step = cs[1].offsetLeft - cs[0].offsetLeft;
-      const rel = x - els.hand.getBoundingClientRect().left;
-      const lastLeft = cs[cs.length - 1].offsetLeft;
-      const i = rel >= lastLeft ? cs.length - 1 : Math.max(0, Math.floor((rel - left0) / (step || 1)));
-      return cs[Math.min(cs.length - 1, i)];
-    };
-    const show = (x) => {
-      const n = pick(x); if (!n || n === last) return;
-      clearPeek(); n.classList.add('peek'); last = n;
-      if (window.Fx) Fx.vib(6);
-    };
+    let timer = null;
+    const show = (x) => { const i = pickIdx(x); if (i !== peekIdx) { applyPeek(i); if (window.Fx) Fx.vib(6); } };
     const move = (e) => {
       if (!scrub.on) { if (Math.hypot(e.clientX - sx, e.clientY - sy) > 9) stop(); return; }   // 누르기 전에 움직이면 일반 끌기
       e.preventDefault(); show(e.clientX);
@@ -268,7 +290,7 @@
       stop();
       if (scrub.on) { justDragged = true; setTimeout(() => { justDragged = false; }, 120); setTimeout(() => { scrub.on = false; }, 0); }
     };
-    timer = setTimeout(() => { scrub.on = true; show(sx); if (window.Fx) Fx.vib(12); }, 230);
+    timer = setTimeout(() => { scrub.on = true; peekIdx = -1; show(sx); if (window.Fx) Fx.vib(12); }, 230);
     window.addEventListener('pointermove', move, { passive: false });
     window.addEventListener('pointerup', up);
     window.addEventListener('pointercancel', up);
@@ -319,6 +341,7 @@
     hand.style.setProperty('--hcw', cw + 'px');
     hand.classList.toggle('hinting', !!hint);
     hand.classList.toggle('wait', !mine);
+    peekIdx = -1;
     hand.innerHTML = '';
     const avail = vw - 60;
     const step = n > 1 ? Math.min(cw * 0.82, (avail - cw) / (n - 1)) : 0;
@@ -359,7 +382,7 @@
     els.meid.innerHTML = '<span class="av">' + me.avatar + '</span>' + me.name + '<span class="n">' + S.hand.length + '장</span>';
   }
 
-  function resetHandMemory() { seenAt = new Map(); lastDraw = null; lastTurnShown = null; seen = new Set(); lastTopUid = null; lastCritKey = ''; seatKey = null; }
+  function resetHandMemory() { setOctetLock(0); seenAt = new Map(); lastDraw = null; lastTurnShown = null; seen = new Set(); lastTopUid = null; lastCritKey = ''; seatKey = null; }
   function shakeCard(uid) {
     const n = els.hand.querySelector('[data-uid="' + uid + '"]');
     if (!n) return;
@@ -376,6 +399,18 @@
     els.timer.classList.toggle('danger', left <= 5);
   }
   function setBonus(on) { els.pass.classList.toggle('hidden', !on); }
+  // 옥텟 버튼 잠금(연타 패널티): 남은 초를 보여주고 끝나면 풀린다
+  let lockUntil = 0, lockT = null;
+  function lockTick() {
+    const left = lockUntil - Date.now(), on = left > 0;
+    els.octet.classList.toggle('locked', on);
+    if (on) els['octet-sec'].textContent = Math.ceil(left / 1000) + '초 뒤에 쓸 수 있어요';
+    else { clearInterval(lockT); lockUntil = 0; els['octet-sec'].textContent = ''; if (S) render(S); }
+  }
+  function setOctetLock(ms) {
+    clearInterval(lockT); lockUntil = ms > 0 ? Date.now() + ms : 0;
+    if (ms > 0) { lockTick(); lockT = setInterval(lockTick, 250); } else els.octet.classList.remove('locked');
+  }
   function setOctet() { /* 옥텟 버튼은 render 가 상태(exposed)로 그린다 */ }
 
   // 진행 알림: 상단 전용 영역(피드). 최신 2개까지. 중앙과 손패를 가리지 않음.
@@ -413,19 +448,29 @@
     const r = els.hand.getBoundingClientRect();
     return { left: r.left + r.width / 2 - 30, top: r.top + 30, width: 60, height: 90 };
   };
-  function flyPlay(card, from, hideUid) {
+  function flyPlay(card, from, hideUid, who) {
     if (hideUid != null) {
       const n = els.hand.querySelector('[data-uid="' + hideUid + '"]');
       if (n) n.style.visibility = 'hidden';
     }
     const f = from || meRect();
     return fly(C.makeCard(spec(card)), { left: f.left, top: f.top, width: f.width, height: f.height }, els.discard.getBoundingClientRect(), 440).then((r) => {
-      if (window.Fx) { if (card.kind === 'sp') Fx.special(card.sp); else Fx.snd('play'); }
+      if (window.Fx) { if (card.kind === 'sp') Fx.special(card.sp, who); else Fx.snd('play'); }
+      impact(els.discard, card.kind === 'sp');
       return r;
     });
   }
+  // 카드가 놓일 때: 더미가 살짝 눌렸다 돌아오고 동그란 파문이 퍼진다(한 번만, 깜빡임 아님)
+  function impact(target, strong) {
+    if (!target) return;
+    target.classList.remove('bump'); void target.offsetWidth; target.classList.add('bump');
+    const rp = h('i', 'ripple' + (strong ? ' strong' : ''));
+    target.appendChild(rp);
+    setTimeout(() => rp.remove(), 700);
+  }
   function flyDraw(playerId) {
     if (window.Fx) Fx.snd('draw');
+    impact(els.draw, false);
     if (playerId === 0) return Promise.resolve();
     const dr = els.draw.getBoundingClientRect();
     return fly(C.makeBack(), { left: dr.left, top: dr.top, width: dr.width, height: dr.height }, seatRect(playerId), 380);
@@ -585,7 +630,7 @@
   function hideResult() { const r = root && root.querySelector('.result'); if (r) r.remove(); }
 
   window.Board = {
-    mount, setHandlers, render, resetHandMemory, setTimer, setBonus, setOctet, notify, splash, shakeCard,
+    mount, setHandlers, render, setOctetLock, resetHandMemory, setTimer, setBonus, setOctet, notify, splash, shakeCard,
     flyPlay, flyDraw, seatRect, openBasis, pickCriterion, pickTarget, closePopups, isPopupOpen, showResult, hideResult,
   };
 })();

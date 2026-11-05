@@ -247,6 +247,12 @@ class Room {
       case 'octetbtn': {
         // 옥텟 버튼 하나로 처리: 내 옥텟이면 외치기 / 남의 옥텟이면 대신 외치기 / 아무도 아니면 안내만(패널티 없음)
         if (S.over) return;
+        const g = m.octG || (m.octG = { t: [], until: 0 });
+        const gd = R.octetGuard(g, Date.now());
+        if (gd.blocked) {                       // 연타 → 10초 잠금
+          conn.send({ t: 'octlock', ms: gd.ms });
+          return fail(gd.fresh ? '옥텟 버튼을 너무 많이 눌러서 10초 동안 쓸 수 없어요' : '옥텟 버튼이 잠겨 있어요 (' + Math.ceil(gd.ms / 1000) + '초)');
+        }
         const o = S.octet && S.players[S.octet.pid].hand.length === 1 ? S.octet.pid : null;
         if (o === pid) r = R.octet(S, pid);
         else if (o !== null) r = R.catchOctet(S, pid, o);
@@ -274,6 +280,7 @@ class Room {
       hand: S.players[i].hand, playable: R.playable(S, i),
       tleftMs: this.turnEnds ? Math.max(0, this.turnEnds - now) : R.TURN_SEC * 1000,
       octet: S.octet ? { pid: S.octet.pid } : null,
+      octLockMs: Math.max(0, ((this.members[i].octG || {}).until || 0) - now),
       players: S.players.map((p, k) => ({
         id: p.id, name: p.name, avatar: p.avatar, count: p.hand.length,
         ai: !!this.members[k].ai, online: !!this.members[k].conn || !!this.members[k].ai,

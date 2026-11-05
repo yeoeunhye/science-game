@@ -12,6 +12,7 @@
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const rnd = (a) => a[Math.floor(Math.random() * a.length)];
   const nm = (pid) => '<b>' + S.players[pid].name + '</b>님';
+  const fxOct = (...a) => { if (window.Fx) window.Fx.octetEvent(...a); };
   const cardName = (c) => (c.kind === 'el' ? c.el.symbol + '(' + c.el.name + ')' : C.SPECIALS[c.sp].name);
 
   function view() {
@@ -131,7 +132,7 @@
         case 'play': {
           flush();
           if (e.card.kind === 'el') ctl.seen.set(e.card.el.num, e.card.el);
-          await B.flyPlay(e.card, e.pid === 0 ? rect : B.seatRect(e.pid), e.pid === 0 ? e.card.uid : null);
+          await B.flyPlay(e.card, e.pid === 0 ? rect : B.seatRect(e.pid), e.pid === 0 ? e.card.uid : null, nm(e.pid));
           if (!S || ctl.tok !== tok) return;
           B.render(view());
           msg = e.card.kind === 'el'
@@ -197,6 +198,7 @@
   function openOctet(pid) {
     // 시간 제한 없음. 본인이 누르거나, 남이 대신 외쳐주거나, 본인이 다시 행동하면 닫힌다.
     (ctl.octT || []).forEach(clearTimeout); ctl.octT = [];
+    fxOct('octetOpen', pid === 0 ? '나' : nm(pid));
     const tok = ++ctl.octTok;
     const prof = AI.PROFILE[LEVEL];
     const at = (ms, fn) => ctl.octT.push(setTimeout(() => { if (S && ctl.octTok === tok && S.octet && S.octet.pid === pid) fn(); }, ms));
@@ -219,8 +221,10 @@
     if (!r.ok || !S) { if (!r.ok && r.error) C.toast(r.error); return; }
     r.events.forEach((e) => {
       if (e.t === 'octet') {
+        fxOct('octet', nm(e.pid));
         B.notify(nm(e.pid) + ' <b>옥텟!</b> 을 외쳤어요', 'good');
       } else if (e.t === 'catch') {
+        fxOct('catch', nm(e.by), nm(e.target) + ' 카드 ' + e.n + '장!');
         B.notify(nm(e.by) + '이 ' + nm(e.target) + '의 옥텟을 외쳤습니다! ' + nm(e.target) + ' 카드 <b>' + e.n + '장</b> 패널티 적용', 'warn');
       } else if (e.t === 'reshuffle') {
         B.notify('드로우 더미가 떨어져서 버린 카드를 섞었어요');
@@ -293,6 +297,8 @@
   // 옥텟 버튼 하나: 내 옥텟이면 외치기 / 남의 옥텟이면 대신 외치기 / 아니면 안내만(패널티 없음)
   function onOctetBtn() {
     if (!S || S.over) return;
+    const gd = R.octetGuard(ctl.octG || (ctl.octG = { t: [], until: 0 }), Date.now());
+    if (gd.blocked) { B.setOctetLock(gd.ms); C.toast(gd.fresh ? '옥텟 버튼을 너무 많이 눌러서 10초 동안 쓸 수 없어요' : '옥텟 버튼이 잠겨 있어요'); return; }
     const o = S.octet && S.players[S.octet.pid].hand.length === 1 ? S.octet.pid : null;
     if (o === 0) onOctet();
     else if (o !== null) onCatch(o);

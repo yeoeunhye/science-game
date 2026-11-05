@@ -403,3 +403,24 @@ body { background: radial-gradient(1000px 700px at 50% 38%, var(--bg2) 0%, var(-
   .logo-big { font-size: clamp(44px, 9vw, 84px); }
 }
 @media (prefers-reduced-motion: reduce) { .spark, .atom, #bg .card.hero { animation: none; } }
+
+/* --- 메인 화면 움직임 --- */
+.logo-badge { animation: logoFloat 6s ease-in-out infinite; }
+@keyframes logoFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+.logo .flask { animation: flaskBob 5s ease-in-out infinite; }
+@keyframes flaskBob { 0%, 100% { transform: rotate(8deg) translateY(0); } 50% { transform: rotate(2deg) translateY(-6px); } }
+.logo .orbit { animation: orbitTilt 14s ease-in-out infinite; }
+@keyframes orbitTilt { 0%, 100% { transform: rotate(-10deg) scaleY(.55); } 50% { transform: rotate(-4deg) scaleY(.5); } }
+.mbtn:hover { transform: translateY(-3px) scale(1.02); }
+.mbtn:active { transform: scale(.97); }
+.mbtn .mi { transition: transform .2s cubic-bezier(.3,1.6,.5,1); }
+.mbtn:hover .mi { transform: rotate(-12deg) scale(1.15); }
+@media (prefers-reduced-motion: reduce) { .logo-badge, .logo .flask, .logo .orbit { animation: none; } }
+
+/* 특수카드 설명: 과학 연결 */
+.sp-text > div + div { margin-top: 5px; }
+.sp-sci { font-size: 13px; line-height: 1.55; color: var(--muted); background: var(--glass); border-left: 3px solid var(--period); border-radius: 8px; padding: 6px 10px; }
+.sp-sci span { display: inline-block; font-weight: 800; font-size: 11px; color: var(--tag-p-fg); background: var(--glass-2); border-radius: 999px; padding: 1px 9px; margin-right: 7px; }
+.sp-sci b { color: var(--text); }
+.sp-sci.oct { margin-top: 12px; }
+.sp-row { align-items: flex-start; }

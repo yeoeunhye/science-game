@@ -233,8 +233,16 @@
   }
   function closeOctet(S) { S.octet = null; }
 
+  // 옥텟 버튼 연타 방지: 5초 안에 3번 누르면 10초 동안 잠긴다. g = { t: [], until: 0 } (사람마다 하나)
+  const OCT_BURST = 3, OCT_WINDOW = 5000, OCT_LOCK = 10000;
+  function octetGuard(g, now) {
+    if (now < g.until) return { blocked: true, ms: g.until - now };
+    g.t = g.t.filter((x) => now - x < OCT_WINDOW); g.t.push(now);
+    if (g.t.length >= OCT_BURST) { g.until = now + OCT_LOCK; g.t = []; return { blocked: true, ms: OCT_LOCK, fresh: true }; }
+    return { blocked: false };
+  }
   return {
-    HAND_SIZE, TURN_SEC, OCTET_PENALTY,
+    HAND_SIZE, TURN_SEC, OCTET_PENALTY, octetGuard, OCT_LOCK,
     createGame, play, draw, pass, timeout, octet, catchOctet, closeOctet,
     canPlay, playable, basisFor, targets, top, critText, critOfCard, isAttack, shuffle,
   };
