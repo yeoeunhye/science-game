@@ -231,19 +231,11 @@
     events.push({ t: 'catch', by, target, n: got });
     return { ok: true, events };
   }
-  // 옥텟 버튼을 잘못 눌렀을 때(지금 옥텟 상황이 아님): 누른 사람이 1장 패널티
-  function falseOctet(S, pid, rng) {
-    if (S.over) return fail('게임이 끝났어요');
-    const events = [];
-    const got = drawCards(S, pid, 1, events, rng);
-    events.push({ t: 'falseOctet', pid, n: got });
-    return { ok: true, events };
-  }
   function closeOctet(S) { S.octet = null; }
 
   return {
     HAND_SIZE, TURN_SEC, OCTET_PENALTY,
-    createGame, play, draw, pass, timeout, octet, catchOctet, falseOctet, closeOctet,
+    createGame, play, draw, pass, timeout, octet, catchOctet, closeOctet,
     canPlay, playable, basisFor, targets, top, critText, critOfCard, isAttack, shuffle,
   };
 });

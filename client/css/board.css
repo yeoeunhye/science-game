@@ -84,7 +84,9 @@
 .pass-btn { border: 0; border-radius: 999px; background: var(--green); color: #fff; font-weight: 800; font-size: 13px; padding: 7px 18px; }
 .hand { --hcw: 92px; position: relative; display: flex; justify-content: center; align-items: flex-end; height: calc(var(--hcw) * 1.5 + 34px); padding: 28px 20px 0; }
 .hand .card { --cw: var(--hcw); transform: translateY(calc(var(--ty, 0px) + var(--lift, 0px))) rotate(var(--rot, 0deg)); transition: transform .16s ease, filter .2s; cursor: pointer; }
-.hand:not(.wait) .card:not(.dim):hover { transform: translateY(calc(var(--ty, 0px) + var(--lift, 0px) - 34px)) rotate(0deg) scale(1.14); z-index: 80 !important; }
+.hand:not(.wait) .card:not(.dim):hover, .hand:not(.wait) .card.peek:not(.dim) { transform: translateY(calc(var(--ty, 0px) + var(--lift, 0px) - 34px)) rotate(0deg) scale(1.14); z-index: 80 !important; }
+/* 낼 수 없는 카드: 색·움직임 변화 없이, 가려진 카드가 앞으로 나와 내용만 보이게 */
+.hand .card.dim:hover, .hand.wait .card:hover, .hand .card.peek { z-index: 80 !important; }
 .hand .card.deal { animation: deal .42s ease backwards; animation-delay: var(--dd, 0s); }
 @keyframes deal { from { transform: translate(var(--dx, 0px), var(--dy, -200px)) scale(.6) rotate(0deg); opacity: .15; } to { transform: translateY(calc(var(--ty, 0px) + var(--lift, 0px))) rotate(var(--rot, 0deg)); opacity: 1; } }
 /* 낼 수 있는 카드(밝게, 살짝 위로) / 낼 수 없는 카드(어둡게) */

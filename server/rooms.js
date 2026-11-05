@@ -245,12 +245,12 @@ class Room {
         r = R.play(S, pid, Number(msg.uid), opt); break;
       }
       case 'octetbtn': {
-        // 옥텟 버튼 하나로 처리: 내 옥텟이면 외치기 / 남의 옥텟이면 대신 외치기 / 아무도 아니면 잘못 누름(+1장)
+        // 옥텟 버튼 하나로 처리: 내 옥텟이면 외치기 / 남의 옥텟이면 대신 외치기 / 아무도 아니면 안내만(패널티 없음)
         if (S.over) return;
         const o = S.octet && S.players[S.octet.pid].hand.length === 1 ? S.octet.pid : null;
         if (o === pid) r = R.octet(S, pid);
         else if (o !== null) r = R.catchOctet(S, pid, o);
-        else r = R.falseOctet(S, pid);
+        else return fail('지금은 옥텟 상태인 사람이 없어요');
         if (r.ok) return this.runQuick(r);
         break;
       }

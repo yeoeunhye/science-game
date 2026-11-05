@@ -13,6 +13,11 @@
   // 배경: 떠다니는 카드들
   function buildBackground() {
     const bg = $('bg');
+    // 주인공 카드: 로고 양옆에 크게 기울여 놓는다(위치는 CSS 클래스로, 좁은 화면에선 가장자리로 물러남)
+    [['hero h1', 1], ['hero h2', 2], ['hero h3', 6], ['hero h4', 3], ['hero h5', 8], ['hero h6', 4]].forEach(([cls, num]) => {
+      const c = C.makeCard(E.byNum[num] || E.ELEMENTS[num - 1], { width: 100 });
+      c.className += ' ' + cls; c.style.removeProperty('--cw'); bg.appendChild(c);
+    });
     const pool = E.ELEMENTS.slice(0, 20);
     const specials = Object.keys(C.SPECIALS);
     for (let i = 0; i < 16; i++) {

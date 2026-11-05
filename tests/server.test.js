@@ -164,7 +164,7 @@ test('정적 파일 서빙과 /api/status, 경로 이탈 차단', async () => {
   }
 });
 
-test('옥텟 버튼: 아무도 옥텟이 아닐 때 누르면 +1장 패널티 (서버 판정)', async () => {
+test('옥텟 버튼: 아무도 옥텟이 아닐 때 누르면 패널티 없이 안내만', async () => {
   const a = client('A'), b = client('B');
   await Promise.all([a.open, b.open]);
   a.send({ t: 'create', name: 'A', avatar: '😎' }); await a.wait((m) => m.t === 'joined');
@@ -172,9 +172,9 @@ test('옥텟 버튼: 아무도 옥텟이 아닐 때 누르면 +1장 패널티 (�
   a.send({ t: 'start' });
   await a.wait((m) => m.t === 'update'); await b.wait((m) => m.t === 'update');
   const n0 = b.view.hand.length;
-  b.msgs.length = 0;
   b.send({ t: 'act', a: 'octetbtn' });
-  await b.wait((m) => m.t === 'update' && m.events.some((e) => e.t === 'falseOctet'));
-  assert.strictEqual(b.view.hand.length, n0 + 1);
+  const e = await b.wait((m) => m.t === 'error' && m.soft);
+  assert.match(e.msg, /옥텟 상태인 사람이 없어요/);
+  assert.strictEqual(b.view.hand.length, n0);
   a.ws.close(); b.ws.close();
 });

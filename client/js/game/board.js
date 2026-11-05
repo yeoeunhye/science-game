@@ -234,9 +234,50 @@
 
   /* ---------- 카드 끌어서 내기 ---------- */
   let justDragged = false;
+  // 꾹 눌러 훑어보기(터치용): 카드를 잠깐 누르고 있으면 손가락이 커서가 되어, 옆으로 밀면 지나가는 카드가 앞으로 나와 보인다.
+  // 손을 떼면 마지막으로 본 카드가 앞에 남아 있어서, 그 카드를 눌러 내거나 끌어서 낼 수 있다.
+  const scrub = { on: false };
+  function clearPeek() { els.hand.querySelectorAll('.peek').forEach((n) => n.classList.remove('peek')); }
+  function startScrub(ev) {
+    if (ev.pointerType === 'mouse') return;
+    const sx = ev.clientX, sy = ev.clientY;
+    let timer = null, last = null;
+    const cards = () => [...els.hand.children];
+    const pick = (x) => {
+      const cs = cards(); if (cs.length < 2) return cs[0];
+      const left0 = cs[0].offsetLeft, step = cs[1].offsetLeft - cs[0].offsetLeft;
+      const rel = x - els.hand.getBoundingClientRect().left;
+      const lastLeft = cs[cs.length - 1].offsetLeft;
+      const i = rel >= lastLeft ? cs.length - 1 : Math.max(0, Math.floor((rel - left0) / (step || 1)));
+      return cs[Math.min(cs.length - 1, i)];
+    };
+    const show = (x) => {
+      const n = pick(x); if (!n || n === last) return;
+      clearPeek(); n.classList.add('peek'); last = n;
+      if (window.Fx) Fx.vib(6);
+    };
+    const move = (e) => {
+      if (!scrub.on) { if (Math.hypot(e.clientX - sx, e.clientY - sy) > 9) stop(); return; }   // 누르기 전에 움직이면 일반 끌기
+      e.preventDefault(); show(e.clientX);
+    };
+    const stop = () => {
+      clearTimeout(timer);
+      window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
+    };
+    const up = () => {
+      stop();
+      if (scrub.on) { justDragged = true; setTimeout(() => { justDragged = false; }, 120); setTimeout(() => { scrub.on = false; }, 0); }
+    };
+    timer = setTimeout(() => { scrub.on = true; show(sx); if (window.Fx) Fx.vib(12); }, 230);
+    window.addEventListener('pointermove', move, { passive: false });
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+  }
+
   function startDrag(ev, node, c) {
     if (ev.button > 0 || (isPopupOpen && isPopupOpen())) return;
     if (node.classList.contains('dim') || els.hand.classList.contains('wait')) return;   // 못 내는 카드는 끌 수 없음
+    if (scrub.on) return;
     const sx = ev.clientX, sy = ev.clientY, r0 = node.getBoundingClientRect();
     let dragging = false, x = sx, y = sy;
     const over = () => {
@@ -245,6 +286,7 @@
     };
     const move = (e) => {
       x = e.clientX; y = e.clientY;
+      if (scrub.on) return;
       if (!dragging && Math.hypot(x - sx, y - sy) > 9) {
         dragging = true; node.classList.add('dragging');
       }
@@ -281,7 +323,8 @@
     const avail = vw - 60;
     const step = n > 1 ? Math.min(cw * 0.82, (avail - cw) / (n - 1)) : 0;
     const mid = (n - 1) / 2;
-    const rotStep = Math.min(4, 34 / Math.max(n, 1));
+    const rotStep = Math.min(4, 14 / Math.max(n, 1));            // 많을수록 완만하게(바깥 카드가 잘리지 않도록)
+    const arcMax = Math.max(8, cw * 0.14);
     let newIdx = 0;
     const fresh = [];
     cards.forEach((c, i) => {
@@ -289,13 +332,13 @@
       node.dataset.uid = c.uid;
       if (i > 0) node.style.marginLeft = (step - cw) + 'px';
       node.style.setProperty('--rot', ((i - mid) * rotStep) + 'deg');
-      node.style.setProperty('--ty', (Math.pow(Math.abs(i - mid), 2) * (n > 9 ? 0.5 : 1.4)) + 'px');
+      node.style.setProperty('--ty', Math.min(arcMax, Math.pow(Math.abs(i - mid), 2) * 1.4) + 'px');
       node.style.zIndex = i + 1;
       if (hint) node.classList.add(state.playable.has(c.uid) ? 'ok' : 'dim');
       if (!seen.has(c.uid)) { seen.add(c.uid); seenAt.set(c.uid, performance.now()); }
       if (performance.now() - (seenAt.get(c.uid) || 0) < 150) fresh.push([node, newIdx++ * 0.06]);   // 바로 다시 그려져도 연출은 이어서
       node.addEventListener('click', () => { if (!justDragged && H.onCard) H.onCard(c.uid, node.getBoundingClientRect()); });
-      node.addEventListener('pointerdown', (ev) => startDrag(ev, node, c));
+      node.addEventListener('pointerdown', (ev) => { if (ev.pointerType !== 'mouse') { const pk = els.hand.querySelector('.peek'); if (pk && pk !== node) clearPeek(); } startScrub(ev); startDrag(ev, node, c); });
       hand.appendChild(node);
     });
     // 새로 들어온 카드: 자리를 먼저 잰 뒤(애니메이션 전), 뽑는 더미 위치에서 출발하도록 설정

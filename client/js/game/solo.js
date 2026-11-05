@@ -222,8 +222,6 @@
         B.notify(nm(e.pid) + ' <b>옥텟!</b> 을 외쳤어요', 'good');
       } else if (e.t === 'catch') {
         B.notify(nm(e.by) + '이 ' + nm(e.target) + '의 옥텟을 외쳤습니다! ' + nm(e.target) + ' 카드 <b>' + e.n + '장</b> 패널티 적용', 'warn');
-      } else if (e.t === 'falseOctet') {
-        B.notify(nm(e.pid) + ' 옥텟을 잘못 눌러서 <b>카드 ' + e.n + '장</b> 패널티', 'warn');
       } else if (e.t === 'reshuffle') {
         B.notify('드로우 더미가 떨어져서 버린 카드를 섞었어요');
       }
@@ -292,13 +290,13 @@
     quick(r);
     if (r.ok && S) B.splash('옥텟!');
   }
-  // 옥텟 버튼 하나: 내 옥텟이면 외치기 / 남의 옥텟이면 대신 외치기 / 아니면 잘못 누름(+1장)
+  // 옥텟 버튼 하나: 내 옥텟이면 외치기 / 남의 옥텟이면 대신 외치기 / 아니면 안내만(패널티 없음)
   function onOctetBtn() {
     if (!S || S.over) return;
     const o = S.octet && S.players[S.octet.pid].hand.length === 1 ? S.octet.pid : null;
     if (o === 0) onOctet();
     else if (o !== null) onCatch(o);
-    else quick(R.falseOctet(S, 0));
+    else C.toast('지금은 옥텟 상태인 사람이 없어요');
   }
   function onCatch(id) {
     if (!S || S.over) return;

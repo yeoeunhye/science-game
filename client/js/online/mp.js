@@ -339,7 +339,6 @@
         case 'octetOpen': flush(); B.notify(e.pid === me ? '손패가 1장! <b>옥텟!</b> 버튼을 눌러요' : nm(e.pid) + ' 손패 1장! 옥텟 버튼을 누를 수 있어요', e.pid === me ? 'accent' : ''); break;
         case 'octet': flush(); B.notify(nm(e.pid) + ' <b>옥텟!</b> 을 외쳤어요', 'good'); break;
         case 'catch': flush(); B.notify(nm(e.by) + '이 ' + nm(e.target) + '의 옥텟을 외쳤습니다! ' + nm(e.target) + ' 카드 <b>' + e.n + '장</b> 패널티 적용', 'warn'); break;
-        case 'falseOctet': flush(); B.notify(nm(e.pid) + ' 옥텟을 잘못 눌러서 <b>카드 ' + e.n + '장</b> 패널티', 'warn'); break;
         case 'turn': if (e.pid === me) myTurnNow = true; break;
         case 'win': flush(); renderView(v); showEnd(v, e.pid); return;
         default: break;

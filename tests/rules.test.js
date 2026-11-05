@@ -265,12 +265,3 @@ test('옥텟 창: 시간 제한 없이 유지, 남이 대신 외치면 본인 +2
   R.draw(S2, 0);                                     // 본인이 뽑으면 닫힘
   assert.equal(S2.octet, null);
 });
-
-test('옥텟 버튼을 잘못 누르면 누른 사람이 1장 패널티', () => {
-  const S = game(3);
-  setup(S, { center: 11, hands: [[C(19), C(19)], [C(12), C(3)], [C(20), C(4)]] });
-  const r = R.falseOctet(S, 1);
-  assert.equal(r.ok, true);
-  assert.equal(S.players[1].hand.length, 3);
-  assert.equal(r.events.at(-1).t, 'falseOctet');
-});
