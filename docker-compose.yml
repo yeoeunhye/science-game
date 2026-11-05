@@ -1,0 +1,13 @@
+# 원소카드: 정적 화면(client)과 WebSocket 게임 서버(server)가 한 프로세스, 한 포트(8000)에서 동작한다.
+# DB·Redis는 쓰지 않는다(방 상태는 서버 메모리). 그래서 인스턴스는 1개로 둔다.
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    expose:
+      - "8000"
+    environment:
+      PORT: "8000"
+    labels:
+      science26.public: "true"
+      science26.api: "true"

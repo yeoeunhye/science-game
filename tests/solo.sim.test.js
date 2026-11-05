@@ -53,7 +53,7 @@ function runGame({ players, mode, humanSkill }) {
     Object.assign(sandbox, { Elements, Rules, AI, Board, Cards: { SPECIALS: { noble: { name: '비활성기체' }, covalent: { name: '공유결합' }, ionic: { name: '이온결합' }, beta: { name: '베타붕괴' }, fission: { name: '핵분열' } }, toast() {} },
       Profile: { get: () => ({ name: '나', avatar: '😎' }) } });
     vm.createContext(sandbox);
-    vm.runInContext(fs.readFileSync(path.join(__dirname, '../client/js/solo.js'), 'utf8'), sandbox);
+    vm.runInContext(fs.readFileSync(path.join(__dirname, '../client/js/game/solo.js'), 'utf8'), sandbox);
     sandbox.Solo.init(() => {});
     sandbox.Solo.start({ players, mode });
     const guard = setTimeout(() => { clearAll(); reject(new Error('시간 초과: 게임이 끝나지 않음 (' + [players, mode].join(',') + ')')); }, 20000);

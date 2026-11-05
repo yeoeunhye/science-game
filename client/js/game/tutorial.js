@@ -226,7 +226,7 @@
     });
     $('tut-prev').style.visibility = idx === 0 ? 'hidden' : 'visible';
     const last = idx === slides.length - 1;
-    $('tut-next').textContent = last ? '완료 ✔' : '다음 ▶';
+    $('tut-next').textContent = last ? (onDone ? '게임 시작 ▶' : '완료 ✔') : '다음 ▶';
   }
 
   $('tut-prev').addEventListener('click', () => { if (idx > 0) { idx--; render(); } });
@@ -234,8 +234,18 @@
     if (idx < slides.length - 1) { idx++; render(); } else close();
   });
 
-  function open() { idx = 0; render(); $('tutorial').classList.remove('hidden'); }
-  function close() { $('tutorial').classList.add('hidden'); }
+  // 닫힐 때 callback 이 있으면 실행한다 (처음 하는 사람: 설명을 본 뒤 게임 시작)
+  let onDone = null;
+  function open(cb) {
+    onDone = typeof cb === 'function' ? cb : null;
+    try { localStorage.setItem('wonso.tutSeen', '1'); } catch (e) { /* ignore */ }
+    idx = 0; render(); $('tutorial').classList.remove('hidden');
+  }
+  function close() {
+    const was = !$('tutorial').classList.contains('hidden');
+    $('tutorial').classList.add('hidden');
+    if (was && onDone) { const cb = onDone; onDone = null; cb(); }
+  }
 
   window.Tutorial = { open, close };
 })();

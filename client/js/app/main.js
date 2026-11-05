@@ -52,6 +52,13 @@
   }
   function closeSetup() { $('setup').classList.add('hidden'); }
 
+  // 처음 하는 사람(이 브라우저에서 게임방법을 본 적 없음)은 게임 시작 전에 게임방법을 먼저 보여준다
+  function firstTimeGate(fn) {
+    let seen = true;
+    try { seen = localStorage.getItem('wonso.tutSeen') === '1'; } catch (e) { seen = true; }
+    if (seen) fn(); else window.Tutorial.open(fn);
+  }
+
   // 프로필 (닉네임 / 이모티콘)
   const P = window.Profile;
   let pfAvatar = P.get().avatar;
@@ -105,10 +112,9 @@
       case 'setup-close': closeSetup(); break;
       case 'setup-start':
         closeSetup();
-        show('screen-game');
-        window.Solo.start({ players: setup.players, mode: setup.mode });
+        firstTimeGate(() => { show('screen-game'); window.Solo.start({ players: setup.players, mode: setup.mode }); });
         break;
-      case 'friends': window.Mp.open(); break;
+      case 'friends': firstTimeGate(() => window.Mp.open()); break;
       case 'friends-close': window.Mp.close(); break;
     }
   });
@@ -123,9 +129,30 @@
   buildBackground();
   show('screen-main');
 
+  // 자리 비움: 화면을 떠나(다른 앱/화면 꺼짐) 일정 시간 안 돌아오면 게임을 자동으로 종료한다
+  const AWAY_MS = window.WONSO_AWAY_MS || 60000;
+  let hiddenAt = 0, awayT = null;
+  async function endIfAway() {
+    const inMp = await window.Mp.away();            // 친구와 하기: 방에서 나감(내 자리는 AI가 이어받음)
+    const soloOn = !inMp && $('screen-game').classList.contains('active');
+    if (soloOn) { window.Solo.stop(); show('screen-main'); }
+    if (inMp || soloOn) C.toast('오래 자리를 비워서 게임을 종료했어요');
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      hiddenAt = Date.now();
+      clearTimeout(awayT);
+      awayT = setTimeout(endIfAway, AWAY_MS);
+    } else {
+      clearTimeout(awayT);
+      if (hiddenAt && Date.now() - hiddenAt >= AWAY_MS) endIfAway();   // 타이머가 멈췄던 경우(폰 절전 등)
+      hiddenAt = 0;
+    }
+  });
+
   // 초대 링크(?room=ABCD)로 들어오면 바로 입장 창을 연다
   try {
     const code = (new URLSearchParams(location.search).get('room') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
-    if (code) { history.replaceState(null, '', location.pathname); window.Mp.open(code); }
+    if (code) { history.replaceState(null, '', location.pathname); firstTimeGate(() => window.Mp.open(code)); }
   } catch (e) { /* ignore */ }
 })();

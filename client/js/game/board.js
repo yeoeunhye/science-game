@@ -12,6 +12,7 @@
   const POS = { 2: ['top'], 3: ['left', 'right'], 4: ['left', 'top', 'right'] };
 
   let root = null, H = {}, els = {}, S = null;
+  let lastDraw = null, lastTurnShown = null, seenAt = new Map();
   let seats = {}, seatKey = null, seen = new Set(), lastTopUid = null, lastCritKey = '', popCancel = null;
 
   const spec = (card) => (card.kind === 'el' ? card.el : card.sp);
@@ -103,7 +104,9 @@
     renderTable();
     renderHand(S);
     renderMe();
-    root.classList.toggle('my-turn', S.turn === 0 && !S.over);
+    const mine = S.turn === 0 && !S.over;
+    if (mine && !root.classList.contains('my-turn') && window.Fx) { Fx.snd('turn'); Fx.vib(40); }
+    root.classList.toggle('my-turn', mine);
     const ex = S.over ? null : S.players.find((p) => p.exposed);
     els.octet.classList.toggle('on', !!ex);
     els.octet.dataset.id = ex ? ex.id : '';
@@ -165,6 +168,8 @@
       (S.pending > 0 ? '<span class="pend">+' + S.pending + '</span>' : '') +
       '<span class="lbl">' + (mine ? (S.pending > 0 ? '받기' : '뽑기') : '') + '</span>');
 
+    if (lastDraw !== null && lastDraw !== S.drawCount) { const cn = d.querySelector('.cnt'); if (cn) cn.classList.add('bump'); }
+    lastDraw = S.drawCount;
     const top = S.discardRecent[S.discardRecent.length - 1];
     if (top && top.uid !== lastTopUid) {
       els.discard.innerHTML = '';
@@ -222,7 +227,9 @@
       const nm = h('span', 'nm'); nm.textContent = (i === 0 ? '나' : p.name) + (cur ? (i === 0 ? ' · 내 차례' : ' · 차례') : '');
       chip.appendChild(nm);
       box.appendChild(chip);
+      if (cur && lastTurnShown !== null && lastTurnShown !== p.id) chip.classList.add('pop');
     });
+    lastTurnShown = S.over ? null : S.turn;
   }
 
   /* ---------- 카드 끌어서 내기 ---------- */
@@ -276,6 +283,7 @@
     const mid = (n - 1) / 2;
     const rotStep = Math.min(4, 34 / Math.max(n, 1));
     let newIdx = 0;
+    const fresh = [];
     cards.forEach((c, i) => {
       const node = C.makeCard(spec(c));
       node.dataset.uid = c.uid;
@@ -284,11 +292,23 @@
       node.style.setProperty('--ty', (Math.pow(Math.abs(i - mid), 2) * (n > 9 ? 0.5 : 1.4)) + 'px');
       node.style.zIndex = i + 1;
       if (hint) node.classList.add(state.playable.has(c.uid) ? 'ok' : 'dim');
-      if (!seen.has(c.uid)) { node.classList.add('deal'); node.style.setProperty('--dd', (newIdx++ * 0.05) + 's'); seen.add(c.uid); }
+      if (!seen.has(c.uid)) { seen.add(c.uid); seenAt.set(c.uid, performance.now()); }
+      if (performance.now() - (seenAt.get(c.uid) || 0) < 150) fresh.push([node, newIdx++ * 0.06]);   // 바로 다시 그려져도 연출은 이어서
       node.addEventListener('click', () => { if (!justDragged && H.onCard) H.onCard(c.uid, node.getBoundingClientRect()); });
       node.addEventListener('pointerdown', (ev) => startDrag(ev, node, c));
       hand.appendChild(node);
     });
+    // 새로 들어온 카드: 자리를 먼저 잰 뒤(애니메이션 전), 뽑는 더미 위치에서 출발하도록 설정
+    if (fresh.length) {
+      const dr = els.draw.getBoundingClientRect();
+      fresh.forEach(([node, delay]) => {
+        const r = node.getBoundingClientRect();
+        node.style.setProperty('--dx', (dr.left + dr.width / 2 - (r.left + r.width / 2)) + 'px');
+        node.style.setProperty('--dy', (dr.top + dr.height / 2 - (r.top + r.height / 2)) + 'px');
+        node.style.setProperty('--dd', delay + 's');
+        node.classList.add('deal');
+      });
+    }
   }
 
   function renderMe() {
@@ -296,10 +316,11 @@
     els.meid.innerHTML = '<span class="av">' + me.avatar + '</span>' + me.name + '<span class="n">' + S.hand.length + '장</span>';
   }
 
-  function resetHandMemory() { seen = new Set(); lastTopUid = null; lastCritKey = ''; seatKey = null; }
+  function resetHandMemory() { seenAt = new Map(); lastDraw = null; lastTurnShown = null; seen = new Set(); lastTopUid = null; lastCritKey = ''; seatKey = null; }
   function shakeCard(uid) {
     const n = els.hand.querySelector('[data-uid="' + uid + '"]');
     if (!n) return;
+    if (window.Fx) { Fx.snd('err'); Fx.vib(25); }
     n.classList.remove('shake'); void n.offsetWidth; n.classList.add('shake');
     setTimeout(() => n.classList.remove('shake'), 420);
   }
@@ -316,6 +337,7 @@
 
   // 진행 알림: 상단 전용 영역(피드). 최신 2개까지. 중앙과 손패를 가리지 않음.
   function notify(html, kind) {
+    if (window.Fx) { if (kind === 'warn') Fx.snd('warn'); else if (kind === 'good') Fx.snd('good'); }
     const a = h('div', 'msg' + (kind ? ' ' + kind : ''), html);
     els.feed.appendChild(a);
     while (els.feed.children.length > 2) els.feed.firstChild.remove();
@@ -354,9 +376,13 @@
       if (n) n.style.visibility = 'hidden';
     }
     const f = from || meRect();
-    return fly(C.makeCard(spec(card)), { left: f.left, top: f.top, width: f.width, height: f.height }, els.discard.getBoundingClientRect(), 440);
+    return fly(C.makeCard(spec(card)), { left: f.left, top: f.top, width: f.width, height: f.height }, els.discard.getBoundingClientRect(), 440).then((r) => {
+      if (window.Fx) { if (card.kind === 'sp') Fx.special(card.sp); else Fx.snd('play'); }
+      return r;
+    });
   }
   function flyDraw(playerId) {
+    if (window.Fx) Fx.snd('draw');
     if (playerId === 0) return Promise.resolve();
     const dr = els.draw.getBoundingClientRect();
     return fly(C.makeBack(), { left: dr.left, top: dr.top, width: dr.width, height: dr.height }, seatRect(playerId), 380);
@@ -476,8 +502,9 @@
   /* ---------- 결과 ---------- */
   function showResult(r) {
     hideResult();
+    if (window.Fx) { Fx.snd(r.win ? 'win' : 'lose'); Fx.vib(r.win ? [60, 50, 60, 50, 120] : 120); }
     const ov = h('div', 'result');
-    const cols = ['#f0464b', '#ffd23f', '#22b573', '#4f9dff', '#a98aff', '#fff'];
+    const cols = ['#d4574d', '#e8b730', '#2a9d8f', '#5b8bd6', '#8f7bd0', '#f8f4ea'];
     if (r.win) {
       for (let i = 0; i < 46; i++) {
         const c = h('i', 'confetti');
@@ -495,8 +522,9 @@
       const rv = h('div', 'review');
       rv.appendChild(h('div', 'rv-title', '이번 판에 나온 원소 복습 <small>' + r.review.length + '개</small>'));
       const grid = h('div', 'rv-grid');
-      r.review.forEach((e) => {
+      r.review.forEach((e, i) => {
         const c = h('div', 'rv ' + e.cat);
+        c.style.animationDelay = (i * 0.03) + 's';
         c.innerHTML = '<b>' + e.symbol + '</b><span>' + e.name + '</span><em>' + e.period + '주기 · ' + e.group + '족</em>';
         grid.appendChild(c);
       });

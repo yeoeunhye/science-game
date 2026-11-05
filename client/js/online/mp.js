@@ -463,5 +463,5 @@
     resume();
   }
 
-  window.Mp = { init, open, close, leave: () => leaveRoom(false), inRoom: () => ui === 'room', MAIL };
+  window.Mp = { inGame: () => inGame, away: () => (inGame || ui === 'room') ? leaveRoom(false).then(() => true) : Promise.resolve(false), init, open, close, leave: () => leaveRoom(false), inRoom: () => ui === 'room', MAIL };
 })();
