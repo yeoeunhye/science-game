@@ -22,7 +22,6 @@ const MIME = {
   '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon',
   '.webp': 'image/webp', '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8',
 };
-const ALLOW = ['client', 'shared'];
 const cache = new Map();           // 경로 → { mtime, raw, gz }
 
 function serveFile(req, res, file) {
@@ -63,15 +62,19 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' });
     return res.end(JSON.stringify(Object.assign({ ok: true }, hub.stats())));
   }
-  if (pathname === '/') { res.writeHead(302, { Location: '/client/' + (new URL(req.url, 'http://x').search || '') }); return res.end(); }
+  // 배포 환경(science26)은 /students/{이름}/ 접두사를 떼고 전달한다. 그래서 화면은 '/' 에서, 상대경로로 동작해야 한다.
+  // 로컬 개발용 /client/ 주소도 그대로 쓸 수 있다.
+  if (pathname === '/client') { res.writeHead(302, { Location: '/client/' + (new URL(req.url, 'http://x').search || '') }); return res.end(); }
+  if (pathname.startsWith('/client/')) pathname = pathname.slice('/client'.length);
   if (pathname.endsWith('/')) pathname += 'index.html';
 
   const parts = pathname.split('/').filter(Boolean);
-  if (!parts.length || !ALLOW.includes(parts[0]) || parts.some((p) => p.startsWith('.') || p === '..')) {
+  if (!parts.length || parts.some((p) => p.startsWith('.') || p === '..')) {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('찾을 수 없어요');
   }
-  const file = path.join(ROOT, ...parts);
-  if (!file.startsWith(ROOT + path.sep)) { res.writeHead(403); return res.end(); }
+  const base = parts[0] === 'shared' ? ROOT : path.join(ROOT, 'client');
+  const file = path.join(base, ...parts);
+  if (!file.startsWith(base + path.sep)) { res.writeHead(403); return res.end(); }
   serveFile(req, res, file);
 });
 
@@ -83,7 +86,7 @@ let nextId = 1;
 
 server.on('upgrade', (req, socket, head) => {
   const url = new URL(req.url, 'http://x');
-  if (url.pathname !== '/ws') { socket.destroy(); return; }
+  if (url.pathname !== '/ws' && url.pathname !== '/client/ws') { socket.destroy(); return; }
   const ip = req.socket.remoteAddress || '?';
   if (connCount >= MAX_CONN || (perIp.get(ip) || 0) >= MAX_PER_IP) {
     socket.write('HTTP/1.1 503 Service Unavailable\r\n\r\n'); socket.destroy(); return;

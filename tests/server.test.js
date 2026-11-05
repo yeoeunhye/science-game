@@ -148,9 +148,14 @@ test('정적 파일 서빙과 /api/status, 경로 이탈 차단', async () => {
   const base = 'http://127.0.0.1:' + port;
   const st = await (await fetch(base + '/api/status')).json();
   assert.strictEqual(st.ok, true);
-  const idx = await fetch(base + '/client/');
-  assert.strictEqual(idx.status, 200);
-  assert.match(await idx.text(), /원소카드/);
+  for (const u of ['/client/', '/']) {            // 로컬(/client/)과 배포(접두사가 제거된 /) 모두 화면이 열린다
+    const idx = await fetch(base + u);
+    assert.strictEqual(idx.status, 200, u);
+    assert.match(await idx.text(), /원소카드/);
+  }
+  for (const u of ['/js/game/solo.js', '/css/style.css', '/shared/rules.js', '/client/shared/rules.js', '/client/js/game/solo.js']) {
+    assert.strictEqual((await fetch(base + u)).status, 200, u);
+  }
   const js = await fetch(base + '/shared/rules.js');
   assert.strictEqual(js.status, 200);
   for (const p of ['/server/server.js', '/package.json', '/client/../server/server.js', '/%2e%2e/etc/passwd', '/node_modules/ws/package.json']) {

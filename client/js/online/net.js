@@ -3,7 +3,7 @@
   let ws = null, handler = null, closeHandler = null, hb = null, lastMsg = 0;
 
   function url() {
-    return (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
+    return (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + location.pathname.replace(/[^/]*$/, '') + 'ws';
   }
 
   // 연결을 시도해서 열리면 resolve, 실패/시간초과면 reject

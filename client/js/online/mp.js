@@ -456,7 +456,7 @@
         case 'start': Net.send({ t: 'start' }); break;
         case 'leave': leaveRoom(false); break;
         case 'copy-code': copyText(room.code).then((ok) => C.toast(ok ? '코드를 복사했어요' : '복사할 수 없어요. 코드를 직접 알려주세요')); break;
-        case 'copy-link': copyText(location.origin + '/client/?room=' + room.code).then((ok) => C.toast(ok ? '초대 링크를 복사했어요' : '복사할 수 없어요. 코드를 직접 알려주세요')); break;
+        case 'copy-link': copyText(location.origin + location.pathname.replace(/index\.html$/, '') + '?room=' + room.code).then((ok) => C.toast(ok ? '초대 링크를 복사했어요' : '복사할 수 없어요. 코드를 직접 알려주세요')); break;
         default: break;
       }
     });

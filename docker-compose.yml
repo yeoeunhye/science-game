@@ -1,6 +1,9 @@
 services:
   web:
     build: .
+    expose:
+      - "8000"
+    environment:
+      PORT: "8000"
     labels:
       science26.public: "true"
-      science26.api: "true"
